@@ -1,44 +1,52 @@
--- ESP Simples com Team Check e Drawing API
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 
-local ESPs = {}
-
-function CreateESP(player)
+function createESP(player)
     if player == LocalPlayer then return end
-    if ESPs[player] then return end
+    if not player.Character then return end
 
-    local box = Drawing.new("Text")
-    box.Size = 13
-    box.Center = true
-    box.Outline = true
-    box.Color = Color3.fromRGB(255, 0, 0)
-    box.Visible = false
-    box.Font = 2
-    box.Text = ""
+    local head = player.Character:FindFirstChild("Head")
+    if not head then return end
 
-    ESPs[player] = box
+    if head:FindFirstChild("ESP") then return end -- já existe
 
-    local function Update()
-        if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") or not player.Character:FindFirstChild("Humanoid") then
-            box.Visible = false
-            return
-        end
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP"
+    billboard.Adornee = head
+    billboard.Size = UDim2.new(0, 100, 0, 40)
+    billboard.StudsOffset = Vector3.new(0, 2, 0)
+    billboard.AlwaysOnTop = true
 
-        if player.Team == LocalPlayer.Team then
-            box.Visible = false
-            return
-        end
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Text = player.Name
+    label.BackgroundTransparency = 1
+    label.TextColor3 = Color3.new(1, 0, 0)
+    label.TextStrokeTransparency = 0.5
+    label.Font = Enum.Font.SourceSansBold
+    label.TextScaled = true
+    label.Parent = billboard
 
-        local pos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-        if onScreen then
-            box.Position = Vector2.new(pos.X, pos.Y - 25)
-            box.Text = player.Name .. " [" .. math.floor(player.Character.Humanoid.Health) .. "]"
-            box.Visible = true
-        else
-            box.Visible = false
+    billboard.Parent = head
+end
+
+-- Adiciona para todos os jogadores
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        player.CharacterAdded:Connect(function()
+            wait(1) -- espera o personagem carregar
+            createESP(player)
+        end)
+        if player.Character then
+            createESP(player)
         end
     end
+end
 
-    ESPs[player .. "_conn"] = RunService.Render
+-- Novos jogadores
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function()
+        wait(1)
+        createESP(player)
+    end)
+end)
